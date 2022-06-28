@@ -1,11 +1,20 @@
 package pkz
 
-type Info struct {
-	Comics       []Comic
-	ComicCount   int `json:"comic_count"`
-	VolumesCount int `json:"volumes_count"`
-	ChapterCount int `json:"chapter_count"`
-	PictureCount int `json:"picture_count"`
+type Archive struct {
+	*ArchiveInfo
+	CoverPath        string  `json:"cover_path"`
+	AuthorAvatarPath string  `json:"author_avatar_path"`
+	Comics           []Comic `json:"comics"`
+	ComicCount       int     `json:"comic_count"`
+	VolumesCount     int     `json:"volumes_count"`
+	ChapterCount     int     `json:"chapter_count"`
+	PictureCount     int     `json:"picture_count"`
+}
+
+type ArchiveInfo struct {
+	Name        string `json:"name"`
+	Author      string `json:"author"`
+	Description string `json:"description"`
 }
 
 type Comic struct {
@@ -16,6 +25,7 @@ type Comic struct {
 	VolumesCount     int      `json:"volumes_count"`
 	ChapterCount     int      `json:"chapter_count"`
 	PictureCount     int      `json:"picture_count"`
+	Idx              int      `json:"idx"`
 }
 
 type Volume struct {
@@ -24,6 +34,7 @@ type Volume struct {
 	Chapters     []Chapter `json:"chapters"`
 	ChapterCount int       `json:"chapter_count"`
 	PictureCount int       `json:"picture_count"`
+	Idx          int       `json:"idx"`
 }
 
 type Chapter struct {
@@ -31,11 +42,13 @@ type Chapter struct {
 	CoverPath    string    `json:"cover_path"`
 	Pictures     []Picture `json:"pictures"`
 	PictureCount int       `json:"picture_count"`
+	Idx          int       `json:"idx"`
 }
 
 type Picture struct {
 	*PictureInfo
 	PicturePath string `json:"picture_path"`
+	Idx         int    `json:"idx"`
 }
 
 type ComicInfo struct {
@@ -43,12 +56,13 @@ type ComicInfo struct {
 	Title       string   `json:"title"`
 	Categories  []string `json:"categories"`
 	Tags        []string `json:"tags"`
-	AuthorId    string   `json:"author"`
+	AuthorId    string   `json:"author_id"`
 	Author      string   `json:"author"`
 	UpdatedAt   int64    `json:"updated_at"`
 	CreatedAt   int64    `json:"created_at"`
 	Description string   `json:"description"`
 	ChineseTeam string   `json:"chinese_team"`
+	Finished    bool     `json:"finished"`
 }
 
 type VolumeInfo struct {
@@ -70,5 +84,5 @@ type PictureInfo struct {
 	Title  string `json:"title"`
 	Width  int    `json:"width"`
 	Height int    `json:"height"`
-	Format int    `json:"format"`
+	Format string `json:"format"`
 }
