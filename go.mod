@@ -1,4 +1,4 @@
-module pkz-go
+module github.com/niuhuan/pkz-go
 
 go 1.17
 
