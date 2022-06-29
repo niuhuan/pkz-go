@@ -2,7 +2,6 @@ package pkz
 
 import (
 	"archive/zip"
-	"compress/flate"
 	"encoding/json"
 	"github.com/google/uuid"
 	"io"
@@ -10,55 +9,7 @@ import (
 )
 
 const infoPath = "PKZ-INFO"
-const zMe = zip.Deflate
 const key = byte(170)
-
-type CStream struct {
-	w *flate.Writer
-}
-
-func (c *CStream) Write(p []byte) (n int, err error) {
-	for i := 0; i < len(p); i++ {
-		p[i] ^= key
-	}
-	return c.w.Write(p)
-}
-
-func (c *CStream) Close() error {
-	return c.w.Close()
-}
-
-func NewCStream(wr io.Writer) (io.WriteCloser, error) {
-	w, e := flate.NewWriter(wr, flate.BestCompression)
-	if e != nil {
-		return nil, e
-	}
-	return &CStream{
-		w: w,
-	}, nil
-}
-
-type DStream struct {
-	r io.ReadCloser
-}
-
-func (d *DStream) Read(p []byte) (n int, err error) {
-	n, err = d.r.Read(p)
-	for i := 0; i < n; i++ {
-		p[i] ^= key
-	}
-	return
-}
-
-func (d *DStream) Close() error {
-	return d.r.Close()
-}
-
-func NewDStream(r io.Reader) io.ReadCloser {
-	return &DStream{
-		r: flate.NewReader(r),
-	}
-}
 
 type ComicsFetcher struct {
 	ArchiveInfo         func() (*ArchiveInfo, error)
@@ -74,9 +25,9 @@ type ComicsFetcher struct {
 	ChapterCount        func(comicIdx int, comicInfo *ComicInfo, volumeIdx int, volumeInfo *VolumeInfo) (int, error)
 	ChapterInfo         func(comicIdx int, comicInfo *ComicInfo, volumeIdx int, volumeInfo *VolumeInfo, chapterIdx int) (*ChapterInfo, error)
 	ChapterCover        func(comicIdx int, comicInfo *ComicInfo, volumeIdx int, volumeInfo *VolumeInfo, chapterIdx int, chapterInfo *ChapterInfo) ([]byte, error)
-	PictureCount         func(comicIdx int, comicInfo *ComicInfo, volumeIdx int, volumeInfo *VolumeInfo, chapterIdx int, chapterInfo *ChapterInfo) (int, error)
-	PictureInfo          func(comicIdx int, comicInfo *ComicInfo, volumeIdx int, volumeInfo *VolumeInfo, chapterIdx int, chapterInfo *ChapterInfo, pictureIdx int) (*PictureInfo, error)
-	PictureData          func(comicIdx int, comicInfo *ComicInfo, volumeIdx int, volumeInfo *VolumeInfo, chapterIdx int, chapterInfo *ChapterInfo, pictureIdx int, pictureInfo *PictureInfo) ([]byte, error)
+	PictureCount        func(comicIdx int, comicInfo *ComicInfo, volumeIdx int, volumeInfo *VolumeInfo, chapterIdx int, chapterInfo *ChapterInfo) (int, error)
+	PictureInfo         func(comicIdx int, comicInfo *ComicInfo, volumeIdx int, volumeInfo *VolumeInfo, chapterIdx int, chapterInfo *ChapterInfo, pictureIdx int) (*PictureInfo, error)
+	PictureData         func(comicIdx int, comicInfo *ComicInfo, volumeIdx int, volumeInfo *VolumeInfo, chapterIdx int, chapterInfo *ChapterInfo, pictureIdx int, pictureInfo *PictureInfo) ([]byte, error)
 }
 
 func WritePkz(
@@ -84,10 +35,17 @@ func WritePkz(
 	fetcher *ComicsFetcher,
 ) error {
 	z := zip.NewWriter(srcW)
-	z.RegisterCompressor(zMe, func(w io.Writer) (io.WriteCloser, error) {
-		return NewCStream(w)
-	})
 	defer z.Close()
+	putToZip := func(path string, buff []byte) (int, error) {
+		w, err := z.Create(path)
+		if err != nil {
+			return 0, err
+		}
+		for i := range buff {
+			buff[i] ^= key
+		}
+		return w.Write(buff)
+	}
 	archiveInfo, err := fetcher.ArchiveInfo()
 	if err != nil {
 		return err
@@ -108,11 +66,7 @@ func WritePkz(
 		}
 		if aAva != nil {
 			path := uuid.New().String()
-			w, err := z.Create(path)
-			if err != nil {
-				return err
-			}
-			_, err = w.Write(aAva)
+			_, err = putToZip(path, aAva)
 			if err != nil {
 				return err
 			}
@@ -126,11 +80,7 @@ func WritePkz(
 		}
 		if aAva != nil {
 			path := uuid.New().String()
-			w, err := z.Create(path)
-			if err != nil {
-				return err
-			}
-			_, err = w.Write(aAva)
+			_, err = putToZip(path, aAva)
 			if err != nil {
 				return err
 			}
@@ -155,11 +105,7 @@ func WritePkz(
 			}
 			if cover != nil {
 				path := uuid.New().String()
-				w, err := z.Create(path)
-				if err != nil {
-					return err
-				}
-				_, err = w.Write(cover)
+				_, err = putToZip(path, cover)
 				if err != nil {
 					return err
 				}
@@ -174,11 +120,7 @@ func WritePkz(
 			}
 			if aAva != nil {
 				path := uuid.New().String()
-				w, err := z.Create(path)
-				if err != nil {
-					return err
-				}
-				_, err = w.Write(aAva)
+				_, err = putToZip(path, aAva)
 				if err != nil {
 					return err
 				}
@@ -210,11 +152,7 @@ func WritePkz(
 				}
 				if cover != nil {
 					path := uuid.New().String()
-					w, err := z.Create(path)
-					if err != nil {
-						return err
-					}
-					_, err = w.Write(cover)
+					_, err = putToZip(path, cover)
 					if err != nil {
 						return err
 					}
@@ -265,11 +203,7 @@ func WritePkz(
 						}
 						if cover != nil {
 							path := uuid.New().String()
-							w, err := z.Create(path)
-							if err != nil {
-								return err
-							}
-							_, err = w.Write(cover)
+							_, err = putToZip(path, cover)
 							if err != nil {
 								return err
 							}
@@ -298,15 +232,19 @@ func ReadPkzPath(filePath string, innerPath string) ([]byte, error) {
 		return nil, err
 	}
 	defer r.Close()
-	r.RegisterDecompressor(zMe, func(r io.Reader) io.ReadCloser {
-		return NewDStream(r)
-	})
 	re, err := r.Open(innerPath)
 	if err != nil {
 		return nil, err
 	}
 	defer re.Close()
-	return ioutil.ReadAll(re)
+	buff, err := ioutil.ReadAll(re)
+	if err != nil {
+		return nil, err
+	}
+	for i := range buff {
+		buff[i] ^= key
+	}
+	return buff, err
 }
 
 func ReadPkzArchive(filePath string) (*Archive, error) {
