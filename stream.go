@@ -218,11 +218,7 @@ func WritePkz(
 	if err != nil {
 		return err
 	}
-	w, err := z.Create(infoPath)
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(buff)
+	_, err = putToZip(infoPath, buff)
 	return err
 }
 
